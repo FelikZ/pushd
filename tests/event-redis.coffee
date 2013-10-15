@@ -1,8 +1,8 @@
 should = require 'should'
 async = require 'async'
 redis = require 'redis'
-Subscriber = require('../lib/subscriber').Subscriber
-Event = require('../lib/event').Event
+Subscriber = require('../lib/models/redis/subscriber').Subscriber
+Event = require('../lib/models/redis/event').Event
 EventPublisher = require('../lib/eventpublisher').EventPublisher
 PushServices = require('../lib/pushservices').PushServices
 
@@ -21,7 +21,7 @@ createSubscriber = (redis, cb) ->
     token += chars[Math.floor(Math.random() * chars.length)] for i in [1..64]
     Subscriber::create(redis, {proto: 'apns', token: token}, cb)
 
-describe 'Event', ->
+describe 'Event (redis)', ->
     @redis = null
     @event = null
     @publisher = null

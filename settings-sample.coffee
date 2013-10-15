@@ -3,6 +3,10 @@ exports.server =
     redis_host: 'localhost'
     # redis_socket: '/var/run/redis/redis.sock'
     # redis_auth: 'password'
+
+    # ['redis']
+    active_db: 'redis'
+
     tcp_port: 80
     udp_port: 80
     access_log: yes
