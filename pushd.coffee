@@ -1,32 +1,43 @@
+settings = require './settings'
+
+# modules
 express = require 'express'
 dgram = require 'dgram'
 zlib = require 'zlib'
 url = require 'url'
+logger = require 'winston'
 Netmask = require('netmask').Netmask
-settings = require './settings'
-redis = require('redis').createClient(settings.server.redis_socket or settings.server.redis_port, settings.server.redis_host)
-Subscriber = require('./lib/subscriber').Subscriber
+
+# db
+switch settings.server.active_db
+    when 'redis'
+        dbInstance = require('redis').createClient(settings.server.redis_socket or settings.server.redis_port, settings.server.redis_host)
+        if settings.server.redis_auth?
+            dbInstance.auth(settings.server.redis_auth)
+    else throw new Error("`active_db` is not set")
+
+# db models
+Subscriber = require("./lib/models/#{settings.server.active_db}/subscriber").Subscriber
+Event = require("./lib/models/#{settings.server.active_db}/event").Event
+
+# other
 EventPublisher = require('./lib/eventpublisher').EventPublisher
-Event = require('./lib/event').Event
 PushServices = require('./lib/pushservices').PushServices
 Payload = require('./lib/payload').Payload
-logger = require 'winston'
+
 
 if settings.loglevel?
     logger.remove(logger.transports.Console);
     logger.add(logger.transports.Console, { level: settings.loglevel });
 
-if settings.server?.redis_auth?
-    redis.auth(settings.server.redis_auth)
-
 createSubscriber = (fields, cb) ->
     logger.verbose "creating subscriber proto = #{fields.proto}, token = #{fields.token}"
     throw new Error("Invalid value for `proto'") unless service = pushServices.getService(fields.proto)
     throw new Error("Invalid value for `token'") unless fields.token = service.validateToken(fields.token)
-    Subscriber::create(redis, fields, cb)
+    Subscriber::create(dbInstance, fields, cb)
 
 tokenResolver = (proto, token, cb) ->
-    Subscriber::getInstanceFromToken redis, proto, token, cb
+    Subscriber::getInstanceFromToken dbInstance, proto, token, cb
 
 eventSourceEnabled = no
 pushServices = new PushServices()
@@ -63,14 +74,14 @@ app.configure ->
 
 app.param 'subscriber_id', (req, res, next, id) ->
     try
-        req.subscriber = new Subscriber(redis, req.params.subscriber_id)
+        req.subscriber = new Subscriber(dbInstance, req.params.subscriber_id)
         delete req.params.subscriber_id
         next()
     catch error
         res.json error: error.message, 400
 
 getEventFromId = (id) ->
-    return new Event(redis, id)
+    return new Event(dbInstance, id)
 
 testSubscriber = (subscriber) ->
     pushServices.push(subscriber, null, new Payload({msg: "Test", "data.test": "ok"}))
@@ -142,7 +153,7 @@ udpApi.on 'message', (msg, rinfo) ->
             status = 404
             if m = req.pathname?.match(event_route)
                 try
-                    event = new Event(redis, m[1])
+                    event = new Event(dbInstance, m[1])
                     status = 204
                     switch method
                         when 'POST' then eventPublisher.publish(event, req.query)

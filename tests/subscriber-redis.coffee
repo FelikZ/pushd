@@ -1,6 +1,6 @@
 should = require 'should'
-Subscriber = require('../lib/subscriber').Subscriber
-Event = require('../lib/event').Event
+Subscriber = require('../lib/models/redis/subscriber').Subscriber
+Event = require('../lib/models/redis/event').Event
 redis = require 'redis'
 
 createSubscriber = (redisClient, proto, token, cb) ->
@@ -11,7 +11,7 @@ createSubscriber = (redisClient, proto, token, cb) ->
         redisClient.quit()
         throw e
 
-describe 'Subscriber', ->
+describe 'Subscriber (redis)', ->
     @redis = null
     @event = null
     @subscriber = null
