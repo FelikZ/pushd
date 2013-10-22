@@ -36,13 +36,17 @@ class EventPublisher extends events.EventEmitter
             logger.silly 'Title: ' + payload.localizedTitle('en')
             logger.silly payload.localizedMessage('en')
 
-
             if subscriber?
+                logger.silly 'Subscriber: ' + if typeof(subscriber) == 'object' then JSON.stringify(subscriber) else subscriber
                 subscriber.getSubscription event, (options) =>
                     if options?
                         @pushServices.push(subscriber, options, payload, () ->
                             logger.verbose "Pushed to subscriber"
+                            cb(1) if cb
                         )
+                    else
+                        logger.verbose "Empty options, unable push to subscriber"
+                        cb(-1) if cb
             else
                 protoCounts = {}
                 event.forEachSubscribers (subscriber, subOptions, done) =>
