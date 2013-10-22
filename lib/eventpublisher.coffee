@@ -37,7 +37,7 @@ class EventPublisher extends events.EventEmitter
             logger.silly payload.localizedMessage('en')
 
             if subscriber?
-                logger.silly 'Subscriber: ' + if typeof(subscriber) == 'object' then JSON.stringify(subscriber) else subscriber
+                logger.silly 'Subscriber: ' + if typeof(subscriber) == 'object' then subscriber.id else subscriber
                 subscriber.getSubscription event, (options) =>
                     if options?
                         @pushServices.push(subscriber, options, payload, () ->
